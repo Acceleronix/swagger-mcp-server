@@ -1,16 +1,301 @@
 {
   "apis": [
     {
-      "name": "iot_device_mgr",
-      "title": "IoT Device Manager API",
+      "name": "device_mgr_enterprise",
+      "title": "IoT Device Manager (Enterprise)",
       "swaggerUrl": "https://iot-api.acceleronix.io/v2/devicemgr/v2/api-docs?group=device-mgr-enterpriseapi",
       "baseUrl": "https://iot-api.acceleronix.io/v2/devicemgr",
-      "auth": {
-        "type": "bearer",
-        "token": ""
-      },
+      "auth": { "type": "bearer", "token": "" },
       "enabled": true,
-      "maxTools": 15
+      "maxTools": 8
+    },
+    {
+      "name": "app_service_enduser",
+      "title": "App Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/app/v2/api-docs?group=AppServiceEndUserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/app",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 6
+    },
+    {
+      "name": "binding_enduser",
+      "title": "Binding Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/binding/v2/api-docs?group=BindingServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/binding",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 6
+    },
+    {
+      "name": "binding_enterprise",
+      "title": "Binding Service (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/binding/v2/api-docs?group=BindingServiceEnterpriseAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/binding",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 6
+    },
+    {
+      "name": "devicegroup_enduser",
+      "title": "DeviceGroup Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/devicegroup/v2/api-docs?group=DeviceGroupServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/devicegroup",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "devicegroup_enterprise",
+      "title": "DeviceGroup Service (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/devicegroup/v2/api-docs?group=DeviceGroupServiceEnterpriseAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/devicegroup",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "deviceshadow_enterprise",
+      "title": "Device Shadow (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/deviceshadow/v2/api-docs?group=device-shadow-enterpriseapi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/deviceshadow",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 6
+    },
+    {
+      "name": "enduser_enduser",
+      "title": "EndUser Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/enduser/v2/api-docs?group=EnduserServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/enduser",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "enduser_enterprise",
+      "title": "EndUser Service (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/enduser/v2/api-docs?group=EnduserServiceEnterpriseAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/enduser",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 5
+    },
+    {
+      "name": "family_enduser",
+      "title": "Family Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/family/v2/api-docs?group=FamilyServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/family",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "family_enterprise",
+      "title": "Family Service (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/family/v2/api-docs?group=FamilyServiceEnterpriseAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/family",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 5
+    },
+    {
+      "name": "i18n_enduser",
+      "title": "I18n Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/i18n/v2/api-docs?group=I18nServiceEndUserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/i18n",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 4
+    },
+    {
+      "name": "mail_enduser",
+      "title": "Mail Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/mail/v2/api-docs?group=MailServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/mail",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "matter_enduser",
+      "title": "Matter Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/matter/v2/api-docs?group=MatterServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/matter",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "mobilepush_enduser",
+      "title": "MobilePush Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/mobilepush/v2/api-docs?group=MobilePushServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/mobilepush",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "mobilepush_enterprise",
+      "title": "MobilePush Service (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/mobilepush/v2/api-docs?group=MobilePushServiceEnterpriseAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/mobilepush",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "oemapp_enduser",
+      "title": "OEM App Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/oemapp/v2/api-docs?group=OemAppServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/oemapp",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "portal_enduser",
+      "title": "Portal Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quechub/v2/api-docs?group=PortalServiceEndUserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quechub",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "category_enduser",
+      "title": "Category Management (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/category/v2/api-docs?group=category-mgr-enduserapi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/category",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "category_enterprise",
+      "title": "Category Management (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/category/v2/api-docs?group=category-mgr-enterpriseapi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/category",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 5
+    },
+    {
+      "name": "datastorage_enduser",
+      "title": "Data Storage Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quecdatastorage/v2/api-docs?group=DataStorageEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quecdatastorage",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "datastorage_enterprise",
+      "title": "Data Storage Service (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quecdatastorage/v2/api-docs?group=DataStorageEnterpriseAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quecdatastorage",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 5
+    },
+    {
+      "name": "globalbootstrap_open",
+      "title": "Global Bootstrap Service (Open)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/globalbootstrap/v2/api-docs?group=global-bootrap-openapi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/globalbootstrap",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 3
+    },
+    {
+      "name": "groupdevice_enduser",
+      "title": "GroupDevice Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/groupdevice/v2/api-docs?group=GroupDeviceServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/groupdevice",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "tsl_enterprise",
+      "title": "Thing Specification Language (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quectsl/v2/api-docs?group=enterpriseApi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quectsl",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 6
+    },
+    {
+      "name": "ota_enduser",
+      "title": "OTA Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quecota/v2/api-docs?group=OTAServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quecota",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "product_enterprise",
+      "title": "Product Management (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quecproductmgr/v2/api-docs?group=product-mgr-enterpriseapi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quecproductmgr",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 6
+    },
+    {
+      "name": "cep_enduser",
+      "title": "Rule Engine (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/cep/v2/api-docs?group=CepServiceEnduserApi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/cep",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 5
+    },
+    {
+      "name": "streaming_enduser",
+      "title": "Streaming Media (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/streaming-media/v2/api-docs?group=StreamingMediaEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/streaming-media",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "weather_enduser",
+      "title": "Weather Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quecweather/v2/api-docs?group=weather-enduserapi",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quecweather",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": true,
+      "maxTools": 4
+    },
+    {
+      "name": "rule_open",
+      "title": "Message Subscription (Enterprise)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/quecrule/v2/api-docs?group=OpenApi-1.0.0",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/quecrule",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "sms_enduser",
+      "title": "SMS Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/sms/v2/api-docs?group=SmsServiceEnduserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/sms",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
+    },
+    {
+      "name": "workorder_enduser",
+      "title": "Work Order Service (EndUser)",
+      "swaggerUrl": "https://iot-api.acceleronix.io/v2/workorder/v2/api-docs?group=WorkOrderServiceEndUserAPI",
+      "baseUrl": "https://iot-api.acceleronix.io/v2/workorder",
+      "auth": { "type": "bearer", "token": "" },
+      "enabled": false,
+      "maxTools": 4
     }
   ],
   "log": {

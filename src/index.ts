@@ -360,6 +360,14 @@ export default {
 			});
 		}
 
+		// Serve config.json (removed for now)
+		if (url.pathname === "/config.json") {
+			return new Response('{"error": "Config endpoint disabled"}', {
+				status: 404,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+
 		return new Response("Swagger MCP Server - Not found", { status: 404 });
 	},
 };
