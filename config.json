@@ -1,0 +1,13 @@
+{
+  "swagger": {
+    "url": "https://iot-api.acceleronix.io/v2/devicemgr/v2/api-docs?group=device-mgr-enterpriseapi",
+    "apiBaseUrl": "https://iot-api.acceleronix.io/v2/devicemgr"
+  },
+  "log": {
+    "level": "info"
+  },
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0"
+  }
+}
