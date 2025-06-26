@@ -175,7 +175,7 @@ Claude Desktop/AI Playground
 - **Health Check**: `/health` - Service status and version info
 - **MCP JSON-RPC**: `/mcp` - Direct JSON-RPC 2.0 endpoint
 
-## PI Documentation
+## API Documentation
 
 Each API provides comprehensive Swagger documentation accessible through the tools. Use the `list_apis` tool to see all available APIs and their descriptions.
 
