@@ -10,10 +10,18 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"migrations": [
 		{
-			"deleted_classes": ["MyMCP"],
-			"tag": "v2"
+			"new_sqlite_classes": ["SwaggerMCP"],
+			"tag": "v3"
 		}
 	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "SwaggerMCP",
+				"name": "MCP_OBJECT"
+			}
+		]
+	},
 	"observability": {
 		"enabled": true
 	}
