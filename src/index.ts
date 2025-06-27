@@ -162,7 +162,8 @@ export class SwaggerMCP extends McpAgent {
 
 				const op = operation as OpenAPI.Operation;
 				const baseOperationId = op.operationId || `${method}_${path.replace(/[{}\/\-]/g, '_')}`;
-				const toolName = `${config.name}_${baseOperationId}`;
+				const simplifiedOperationId = this.simplifyOperationId(baseOperationId);
+				const toolName = `${config.name}_${simplifiedOperationId}`;
 				
 				console.log(`Register: ${toolName} [${method.toUpperCase()} ${path}]`);
 
@@ -181,6 +182,109 @@ export class SwaggerMCP extends McpAgent {
 		}
 		
 		console.log(`Registered ${toolCount} tools for ${config.name}`);
+	}
+
+	private simplifyOperationId(operationId: string): string {
+		// Remove redundant HTTP method suffixes
+		let simplified = operationId
+			.replace(/Using(GET|POST|PUT|DELETE|PATCH)(_\d+)?$/g, '')
+			.replace(/Controller$/g, '');
+
+		// Apply specific mappings for common patterns
+		const mappings: Record<string, string> = {
+			// Device management
+			'deviceDetail': 'device_detail',
+			'deviceList': 'device_list',
+			'verifiedDevice': 'verify_device',
+			'addSnList': 'add_sn_list',
+			'deleteSnList': 'delete_sn_list',
+			'findDkList': 'find_dk_list',
+			'findSnList': 'find_sn_list',
+			'generateSnList': 'generate_sn_list',
+			
+			// App service
+			'appQueryProductPanel': 'query_product_panel',
+			'appReportingCapability': 'reporting_capability',
+			'appRequestPanelByPk': 'request_panel_by_pk',
+			'guidanceDetail': 'guidance_detail',
+			'itemList': 'item_list',
+			'setting': 'get_setting',
+			
+			// Binding operations
+			'batchControlDevice': 'batch_control_device',
+			'batchGetPureBtResetCredentials': 'batch_get_bt_reset_credentials',
+			'batchUnbindlingDevice': 'batch_unbind_device',
+			'bind3rdMatterDevice': 'bind_matter_device',
+			'bindDeviceBt': 'bind_device_bt',
+			'bindDeviceDk': 'bind_device_dk',
+			'bindDeviceByPkDk': 'bind_device_by_pk_dk',
+			'deviceUserList': 'device_user_list',
+			'getUserListByBind': 'get_user_list_by_bind',
+			'unbundlingUserDevice': 'unbind_user_device',
+			'userDeviceList': 'user_device_list',
+			'verifyBindingCode': 'verify_binding_code',
+			
+			// Device group
+			'acceptDeviceGroupShare': 'accept_group_share',
+			'addDeviceGroup': 'add_device_group',
+			'addDeviceToGroup': 'add_device_to_group',
+			'deleteDeviceGroup': 'delete_device_group',
+			'deleteDeviceToGroup': 'remove_device_from_group',
+			
+			// Device shadow
+			'getLocation': 'get_location',
+			'sendData': 'send_data',
+			'batchSendData': 'batch_send_data',
+			'deviceResource': 'device_resource',
+			'sendData2': 'send_data_v2',
+			'readData': 'read_data',
+			
+			// User operations
+			'addConsentRecord': 'add_consent_record',
+			'addReasonCancellation': 'add_reason_cancellation',
+			'alipayAuthLogin': 'alipay_auth_login',
+			'appLogUpload': 'app_log_upload',
+			'appleAuthLogin': 'apple_auth_login',
+			
+			// Product operations
+			'productDetail': 'product_detail',
+			'overviewProjects': 'overview_projects',
+			'overviewProducts': 'overview_products',
+			'products': 'products',
+			'openApiProductDetailV3': 'open_api_product_detail_v3',
+			
+			// OTA operations
+			'addDeviceUpgrade': 'add_device_upgrade',
+			'closeFinishTips': 'close_finish_tips',
+			'deleteDeviceUpgrade': 'delete_device_upgrade',
+			'getAutoUpgradeSwitch': 'get_auto_upgrade_switch',
+			'getDeviceUpgradePlan': 'get_device_upgrade_plan',
+			
+			// Data storage
+			'getZhxyPropertyDataList': 'get_zhxy_property_data_list',
+			'getDeviceEventList': 'get_device_event_list',
+			'getLocationHistory': 'get_location_history',
+			'getPropertyChartList': 'get_property_chart_list',
+			'getPropertyDataList': 'get_property_data_list',
+			
+			// Weather operations
+			'deviceLocationDelete': 'delete_device_location',
+			'deviceLocationFind': 'find_device_location',
+			'deviceLocationSave': 'save_device_location',
+			'obtainCurrentWeatherOnDk': 'get_current_weather'
+		};
+
+		// Apply mapping if exists
+		if (mappings[simplified]) {
+			return mappings[simplified];
+		}
+
+		// Convert camelCase to snake_case for remaining cases
+		return simplified
+			.replace(/([A-Z])/g, '_$1')
+			.toLowerCase()
+			.replace(/^_/, '')  // Remove leading underscore
+			.replace(/_+/g, '_'); // Replace multiple underscores with single
 	}
 
 	private createInputSchema(apiInstance: ApiInstance, operation: OpenAPI.Operation): z.ZodObject<any> {
