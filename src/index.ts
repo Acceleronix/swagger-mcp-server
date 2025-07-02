@@ -22,6 +22,17 @@ export class SwaggerMCP extends McpAgent {
 	}) as any;
 
 	private apiInstances: Map<string, ApiInstance> = new Map();
+	private allEndpoints: Array<{
+		apiName: string;
+		apiTitle: string;
+		method: string;
+		path: string;
+		operationId?: string;
+		summary?: string;
+		description?: string;
+		parameters?: any[];
+		operation: any;
+	}> = [];
 
 	async init() {
 		try {
@@ -93,6 +104,44 @@ export class SwaggerMCP extends McpAgent {
 				};
 			}
 		);
+
+		// Search and call API tool
+		this.server.tool(
+			"search_api",
+			z.object({
+				query: z.string().optional().describe("Search query to find matching API endpoints (e.g., 'product', 'device', 'user')"),
+				api_name: z.string().optional().describe("API name to call (e.g., 'product_enterprise', 'device_mgr_enterprise')"),
+				method: z.string().optional().describe("HTTP method (GET, POST, PUT, DELETE)"),
+				path: z.string().optional().describe("API endpoint path (e.g., '/v2/project/{projectId}/product/overview')"),
+				parameters: z.record(z.any()).optional().describe("API parameters as key-value pairs"),
+				auth_token: z.string().optional().describe("Bearer token for authentication")
+			}),
+			async (params: any) => {
+				const { query, api_name, method, path, parameters, auth_token } = params.input;
+				
+				// Search mode: find matching endpoints
+				if (query && !api_name && !method && !path) {
+					return await this.searchEndpoints(query);
+				}
+				
+				// Call mode: execute specific API
+				if (api_name && method && path) {
+					return await this.callEndpoint(api_name, method, path, parameters || {}, auth_token);
+				}
+				
+				// Invalid usage
+				return {
+					content: [{
+						type: "text",
+						text: `❌ **Invalid Usage**\n\n` +
+							`**Search Mode**: Provide only \`query\` parameter\n` +
+							`Example: {"query": "product"}\n\n` +
+							`**Call Mode**: Provide \`api_name\`, \`method\`, and \`path\`\n` +
+							`Example: {"api_name": "product_enterprise", "method": "GET", "path": "/v2/project/{projectId}/product/overview", "parameters": {"projectId": "123"}}`
+					}]
+				};
+			}
+		);
 	}
 
 	private async initializeApi(apiConfig: ApiConfig) {
@@ -153,41 +202,34 @@ export class SwaggerMCP extends McpAgent {
 		const totalPaths = Object.keys(swaggerSpec.paths).length;
 		console.log(`Found ${totalPaths} paths in ${config.name}`);
 
-		let toolCount = 0;
+		let endpointCount = 0;
 		for (const [path, pathItem] of Object.entries(swaggerSpec.paths)) {
-			if (!pathItem || toolCount >= config.maxTools) break;
+			if (!pathItem || endpointCount >= config.maxTools) break;
 			
 			for (const [method, operation] of Object.entries(pathItem)) {
-				if (method === '$ref' || !operation || toolCount >= config.maxTools) continue;
+				if (method === '$ref' || !operation || endpointCount >= config.maxTools) continue;
 
 				const op = operation as OpenAPI.Operation;
-				const baseOperationId = op.operationId || `${method}_${path.replace(/[{}\/\-]/g, '_')}`;
-				const simplifiedOperationId = this.simplifyOperationId(baseOperationId);
-				const toolName = `${config.name}_${simplifiedOperationId}`;
 				
-				console.log(`Register: ${toolName} [${method.toUpperCase()} ${path}]`);
-
-				// Create input schema with auth support
-				const inputSchema = this.createInputSchema(apiInstance, op);
-
-				// Create tool description with actual API path and method
-				const toolDescription = `${op.summary || `Call ${method.toUpperCase()} ${path}`}\n\n` +
-					`🔗 **API Endpoint**: ${method.toUpperCase()} ${path}\n` +
-					`📝 **Description**: ${op.description || 'No description available'}\n` +
-					`🏷️ **Tool Name**: ${toolName}`;
-
-				this.server.tool(
-					toolName,
-					inputSchema.describe(toolDescription),
-					async (params: any) => {
-						return await this.executeApiCall(apiInstance, path, method, op, params.input);
-					}
-				);
-				toolCount++;
+				// Store endpoint information for search functionality
+				this.allEndpoints.push({
+					apiName: config.name,
+					apiTitle: config.title,
+					method: method.toUpperCase(),
+					path: path,
+					operationId: op.operationId,
+					summary: op.summary,
+					description: op.description,
+					parameters: op.parameters || [],
+					operation: op
+				});
+				
+				console.log(`Collected: ${config.name} [${method.toUpperCase()} ${path}] - ${op.summary || 'No summary'}`);
+				endpointCount++;
 			}
 		}
 		
-		console.log(`Registered ${toolCount} tools for ${config.name}`);
+		console.log(`Collected ${endpointCount} endpoints for ${config.name}`);
 	}
 
 	private simplifyOperationId(operationId: string): string {
@@ -331,7 +373,8 @@ export class SwaggerMCP extends McpAgent {
 		path: string, 
 		method: string, 
 		operation: OpenAPI.Operation, 
-		input: any
+		input: any,
+		authOverride?: any
 	): Promise<any> {
 		const { config } = apiInstance;
 		
@@ -341,8 +384,12 @@ export class SwaggerMCP extends McpAgent {
 				'Content-Type': 'application/json'
 			};
 
-			// Add authentication
-			this.addAuthHeaders(headers, config, input);
+			// Add authentication (use authOverride if provided)
+			const effectiveConfig = { ...config };
+			if (authOverride) {
+				effectiveConfig.auth = authOverride;
+			}
+			this.addAuthHeaders(headers, effectiveConfig, input);
 
 			// Build URL
 			let url = config.baseUrl + path;
@@ -382,7 +429,7 @@ export class SwaggerMCP extends McpAgent {
 					content: [
 						{ type: "text", text: `❌ **${config.title}** API Call Failed` },
 						{ type: "text", text: `🔗 **Endpoint**: ${method.toUpperCase()} ${path}` },
-						{ type: "text", text: `🌐 **Full URL**: ${url}` },
+						{ type: "text", text: `🌐 **Full URL**: ${config.baseUrl}${path}` },
 						{ type: "text", text: `📊 **Status**: ${error.response.status}` },
 						{ type: "text", text: `❌ **Error Response**:\n\`\`\`json\n${JSON.stringify(error.response.data, null, 2)}\n\`\`\`` }
 					]
@@ -392,6 +439,7 @@ export class SwaggerMCP extends McpAgent {
 				content: [
 					{ type: "text", text: `❌ **${config.title}** API Call Failed` },
 					{ type: "text", text: `🔗 **Endpoint**: ${method.toUpperCase()} ${path}` },
+					{ type: "text", text: `🌐 **Base URL**: ${config.baseUrl}` },
 					{ type: "text", text: `❌ **Error**: ${error}` }
 				]
 			};
@@ -447,10 +495,120 @@ export class SwaggerMCP extends McpAgent {
 		return this.extractQueryParams(input); // Same logic for now
 	}
 
+	private async searchEndpoints(query: string): Promise<any> {
+		const searchQuery = query.toLowerCase();
+		const matchingEndpoints = this.allEndpoints.filter(endpoint => {
+			const searchableText = [
+				endpoint.path,
+				endpoint.summary,
+				endpoint.description,
+				endpoint.operationId,
+				endpoint.apiTitle,
+				endpoint.apiName
+			].join(' ').toLowerCase();
+			
+			return searchableText.includes(searchQuery);
+		});
+
+		if (matchingEndpoints.length === 0) {
+			return {
+				content: [{
+					type: "text",
+					text: `🔍 **No endpoints found for query: "${query}"**\n\n` +
+						`Try searching for terms like: product, device, user, binding, group, etc.`
+				}]
+			};
+		}
+
+		let result = `🔍 **Found ${matchingEndpoints.length} matching endpoints for "${query}":**\n\n`;
+		
+		matchingEndpoints.slice(0, 10).forEach((endpoint, index) => {
+			result += `**${index + 1}. ${endpoint.apiTitle}**\n`;
+			result += `🔗 **Endpoint**: \`${endpoint.method} ${endpoint.path}\`\n`;
+			result += `📝 **Summary**: ${endpoint.summary || 'No summary'}\n`;
+			result += `📋 **Description**: ${endpoint.description || 'No description'}\n`;
+			result += `🏷️ **API Name**: ${endpoint.apiName}\n`;
+			if (endpoint.parameters && endpoint.parameters.length > 0) {
+				const paramNames = endpoint.parameters.map((p: any) => p.name).join(', ');
+				result += `📥 **Parameters**: ${paramNames}\n`;
+			}
+			result += `\n**To call this endpoint, use:**\n`;
+			result += `\`\`\`json\n`;
+			result += `{\n`;
+			result += `  "api_name": "${endpoint.apiName}",\n`;
+			result += `  "method": "${endpoint.method}",\n`;
+			result += `  "path": "${endpoint.path}",\n`;
+			result += `  "parameters": {},\n`;
+			result += `  "auth_token": "your-token-here"\n`;
+			result += `}\n`;
+			result += `\`\`\`\n\n`;
+		});
+
+		if (matchingEndpoints.length > 10) {
+			result += `*Showing first 10 results. Total found: ${matchingEndpoints.length}*`;
+		}
+
+		return {
+			content: [{ type: "text", text: result }]
+		};
+	}
+
+	private async callEndpoint(apiName: string, method: string, path: string, parameters: any, authToken?: string): Promise<any> {
+		// Find the API instance
+		const apiInstance = this.apiInstances.get(apiName);
+		if (!apiInstance) {
+			return {
+				content: [{
+					type: "text",
+					text: `❌ **API not found**: ${apiName}\n\n` +
+						`Available APIs: ${Array.from(this.apiInstances.keys()).join(', ')}`
+				}]
+			};
+		}
+
+		// Find the matching endpoint
+		const endpoint = this.allEndpoints.find(ep => 
+			ep.apiName === apiName && 
+			ep.method === method.toUpperCase() && 
+			ep.path === path
+		);
+
+		if (!endpoint) {
+			return {
+				content: [{
+					type: "text",
+					text: `❌ **Endpoint not found**: ${method.toUpperCase()} ${path}\n\n` +
+						`API: ${apiName}\n` +
+						`Use search_api with a query to find available endpoints.`
+				}]
+			};
+		}
+
+		// Prepare auth configuration
+		const authConfig = { ...apiInstance.config.auth };
+		if (authToken) {
+			authConfig.token = authToken;
+		}
+
+		// Execute the API call
+		try {
+			return await this.executeApiCall(apiInstance, path, method.toLowerCase(), endpoint.operation, parameters, authConfig);
+		} catch (error) {
+			return {
+				content: [{
+					type: "text",
+					text: `❌ **API Call Failed**\n` +
+						`🔗 **Endpoint**: ${method.toUpperCase()} ${path}\n` +
+						`🏷️ **API**: ${apiInstance.config.title}\n` +
+						`❌ **Error**: ${error}`
+				}]
+			};
+		}
+	}
+
 	private getApiToolCount(apiName: string): number {
-		// Count tools that start with the API name prefix
-		// This is a simplified count - in real implementation we'd track this properly
-		return 5; // Placeholder
+		// Count endpoints for this API
+		return this.allEndpoints.filter(ep => ep.apiName === apiName).length;
 	}
 }
 
