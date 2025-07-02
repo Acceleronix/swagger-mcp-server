@@ -8,12 +8,6 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2025-03-10",
 	"compatibility_flags": ["nodejs_compat"],
-	"migrations": [
-		{
-			"new_sqlite_classes": ["SwaggerMCP"],
-			"tag": "v3"
-		}
-	],
 	"durable_objects": {
 		"bindings": [
 			{
@@ -22,6 +16,15 @@
 			}
 		]
 	},
+	"migrations": [
+		{
+			"new_sqlite_classes": ["SwaggerMCP"],
+			"tag": "v3"
+		},
+		{
+			"tag": "v4"
+		}
+	],
 	"observability": {
 		"enabled": true
 	}

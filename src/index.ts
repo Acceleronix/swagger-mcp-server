@@ -54,6 +54,7 @@ export class SwaggerMCP extends McpAgent {
 			}
 			
 			console.log(`Swagger MCP Server initialized with ${this.apiInstances.size} APIs`);
+			console.log(`Total endpoints collected: ${this.allEndpoints.length}`);
 			
 		} catch (error) {
 			console.error('Failed to initialize Swagger MCP Server:', error);
@@ -65,8 +66,11 @@ export class SwaggerMCP extends McpAgent {
 		// List all available APIs
 		this.server.tool(
 			"list_apis",
-			z.object({}),
-			async (params: any) => {
+			"List all available APIs",
+			{
+				input: z.object({})
+			},
+			async () => {
 				let result = "📋 Available APIs:\n\n";
 				
 				for (const [name, instance] of this.apiInstances) {
@@ -75,7 +79,7 @@ export class SwaggerMCP extends McpAgent {
 					result += `├─ Base URL: ${instance.config.baseUrl}\n`;
 					result += `├─ Version: ${spec.info.version}\n`;
 					result += `├─ Description: ${spec.info.description?.substring(0, 100) || 'N/A'}...\n`;
-					result += `└─ Tools: ${this.getApiToolCount(name)}\n\n`;
+					result += `└─ Endpoints: ${this.getApiEndpointCount(name)}\n\n`;
 				}
 				
 				if (this.apiInstances.size === 0) {
@@ -91,15 +95,18 @@ export class SwaggerMCP extends McpAgent {
 		// Test tool
 		this.server.tool(
 			"test_connection",
-			z.object({
-				message: z.string().describe("Test message")
-			}),
-			async (params: any) => {
-				const { message } = params.input;
+			"Test connection to the MCP server",
+			{
+				input: z.object({
+					message: z.string().describe("Test message")
+				})
+			},
+			async ({ input }: any) => {
+				const { message } = input;
 				return { 
 					content: [{ 
 						type: "text", 
-						text: `✅ Multi-API Swagger MCP Server is working!\n📩 Message: ${message}\n🔗 Active APIs: ${this.apiInstances.size}` 
+						text: `✅ Multi-API Swagger MCP Server is working!\n📩 Message: ${message}\n🔗 Active APIs: ${this.apiInstances.size}\n📊 Total Endpoints: ${this.allEndpoints.length}` 
 					}] 
 				};
 			}
@@ -108,16 +115,19 @@ export class SwaggerMCP extends McpAgent {
 		// Search and call API tool
 		this.server.tool(
 			"search_api",
-			z.object({
-				query: z.string().optional().describe("Search query to find matching API endpoints (e.g., 'product', 'device', 'user')"),
-				api_name: z.string().optional().describe("API name to call (e.g., 'product_enterprise', 'device_mgr_enterprise')"),
-				method: z.string().optional().describe("HTTP method (GET, POST, PUT, DELETE)"),
-				path: z.string().optional().describe("API endpoint path (e.g., '/v2/project/{projectId}/product/overview')"),
-				parameters: z.record(z.any()).optional().describe("API parameters as key-value pairs"),
-				auth_token: z.string().optional().describe("Bearer token for authentication")
-			}),
-			async (params: any) => {
-				const { query, api_name, method, path, parameters, auth_token } = params.input;
+			"Search for API endpoints or call a specific API",
+			{
+				input: z.object({
+					query: z.string().optional().describe("Search query to find matching API endpoints (e.g., 'product', 'device', 'user')"),
+					api_name: z.string().optional().describe("API name to call (e.g., 'product_enterprise', 'device_mgr_enterprise')"),
+					method: z.string().optional().describe("HTTP method (GET, POST, PUT, DELETE)"),
+					path: z.string().optional().describe("API endpoint path (e.g., '/v2/project/{projectId}/product/overview')"),
+					parameters: z.record(z.any()).optional().describe("API parameters as key-value pairs"),
+					auth_token: z.string().optional().describe("Bearer token for authentication")
+				})
+			},
+			async ({ input }: any) => {
+				const { query, api_name, method, path, parameters, auth_token } = input;
 				
 				// Search mode: find matching endpoints
 				if (query && !api_name && !method && !path) {
@@ -164,10 +174,10 @@ export class SwaggerMCP extends McpAgent {
 			// Store the instance
 			this.apiInstances.set(apiConfig.name, apiInstance);
 			
-			// Register tools for this API
-			await this.registerApiTools(apiInstance);
+			// Collect endpoints for this API
+			await this.collectApiEndpoints(apiInstance);
 			
-			console.log(`✅ Loaded API: ${apiConfig.title} with ${this.getApiToolCount(apiConfig.name)} tools`);
+			console.log(`✅ Loaded API: ${apiConfig.title} with ${this.getApiEndpointCount(apiConfig.name)} endpoints`);
 			
 		} catch (error) {
 			console.error(`❌ Failed to load API ${apiConfig.name}:`, error);
@@ -191,7 +201,7 @@ export class SwaggerMCP extends McpAgent {
 		return {};
 	}
 
-	private async registerApiTools(apiInstance: ApiInstance) {
+	private async collectApiEndpoints(apiInstance: ApiInstance) {
 		const { config, swaggerSpec } = apiInstance;
 		
 		if (!swaggerSpec.paths) {
@@ -232,140 +242,115 @@ export class SwaggerMCP extends McpAgent {
 		console.log(`Collected ${endpointCount} endpoints for ${config.name}`);
 	}
 
-	private simplifyOperationId(operationId: string): string {
-		// Remove redundant HTTP method suffixes
-		let simplified = operationId
-			.replace(/Using(GET|POST|PUT|DELETE|PATCH)(_\d+)?$/g, '')
-			.replace(/Controller$/g, '');
-
-		// Apply specific mappings for common patterns
-		const mappings: Record<string, string> = {
-			// Device management
-			'deviceDetail': 'device_detail',
-			'deviceList': 'device_list',
-			'verifiedDevice': 'verify_device',
-			'addSnList': 'add_sn_list',
-			'deleteSnList': 'delete_sn_list',
-			'findDkList': 'find_dk_list',
-			'findSnList': 'find_sn_list',
-			'generateSnList': 'generate_sn_list',
+	private async searchEndpoints(query: string): Promise<any> {
+		const searchQuery = query.toLowerCase();
+		const matchingEndpoints = this.allEndpoints.filter(endpoint => {
+			const searchableText = [
+				endpoint.path,
+				endpoint.summary,
+				endpoint.description,
+				endpoint.operationId,
+				endpoint.apiTitle,
+				endpoint.apiName
+			].join(' ').toLowerCase();
 			
-			// App service
-			'appQueryProductPanel': 'query_product_panel',
-			'appReportingCapability': 'reporting_capability',
-			'appRequestPanelByPk': 'request_panel_by_pk',
-			'guidanceDetail': 'guidance_detail',
-			'itemList': 'item_list',
-			'setting': 'get_setting',
-			
-			// Binding operations
-			'batchControlDevice': 'batch_control_device',
-			'batchGetPureBtResetCredentials': 'batch_get_bt_reset_credentials',
-			'batchUnbindlingDevice': 'batch_unbind_device',
-			'bind3rdMatterDevice': 'bind_matter_device',
-			'bindDeviceBt': 'bind_device_bt',
-			'bindDeviceDk': 'bind_device_dk',
-			'bindDeviceByPkDk': 'bind_device_by_pk_dk',
-			'deviceUserList': 'device_user_list',
-			'getUserListByBind': 'get_user_list_by_bind',
-			'unbundlingUserDevice': 'unbind_user_device',
-			'userDeviceList': 'user_device_list',
-			'verifyBindingCode': 'verify_binding_code',
-			
-			// Device group
-			'acceptDeviceGroupShare': 'accept_group_share',
-			'addDeviceGroup': 'add_device_group',
-			'addDeviceToGroup': 'add_device_to_group',
-			'deleteDeviceGroup': 'delete_device_group',
-			'deleteDeviceToGroup': 'remove_device_from_group',
-			
-			// Device shadow
-			'getLocation': 'get_location',
-			'sendData': 'send_data',
-			'batchSendData': 'batch_send_data',
-			'deviceResource': 'device_resource',
-			'sendData2': 'send_data_v2',
-			'readData': 'read_data',
-			
-			// User operations
-			'addConsentRecord': 'add_consent_record',
-			'addReasonCancellation': 'add_reason_cancellation',
-			'alipayAuthLogin': 'alipay_auth_login',
-			'appLogUpload': 'app_log_upload',
-			'appleAuthLogin': 'apple_auth_login',
-			
-			// Product operations
-			'productDetail': 'product_detail',
-			'overviewProjects': 'overview_projects',
-			'overviewProducts': 'overview_products',
-			'products': 'products',
-			'openApiProductDetailV3': 'open_api_product_detail_v3',
-			
-			// OTA operations
-			'addDeviceUpgrade': 'add_device_upgrade',
-			'closeFinishTips': 'close_finish_tips',
-			'deleteDeviceUpgrade': 'delete_device_upgrade',
-			'getAutoUpgradeSwitch': 'get_auto_upgrade_switch',
-			'getDeviceUpgradePlan': 'get_device_upgrade_plan',
-			
-			// Data storage
-			'getZhxyPropertyDataList': 'get_zhxy_property_data_list',
-			'getDeviceEventList': 'get_device_event_list',
-			'getLocationHistory': 'get_location_history',
-			'getPropertyChartList': 'get_property_chart_list',
-			'getPropertyDataList': 'get_property_data_list',
-			
-			// Weather operations
-			'deviceLocationDelete': 'delete_device_location',
-			'deviceLocationFind': 'find_device_location',
-			'deviceLocationSave': 'save_device_location',
-			'obtainCurrentWeatherOnDk': 'get_current_weather'
-		};
-
-		// Apply mapping if exists
-		if (mappings[simplified]) {
-			return mappings[simplified];
-		}
-
-		// Convert camelCase to snake_case for remaining cases
-		return simplified
-			.replace(/([A-Z])/g, '_$1')
-			.toLowerCase()
-			.replace(/^_/, '')  // Remove leading underscore
-			.replace(/_+/g, '_'); // Replace multiple underscores with single
-	}
-
-	private createInputSchema(apiInstance: ApiInstance, operation: OpenAPI.Operation): z.ZodObject<any> {
-		const { config } = apiInstance;
-		
-		// Base schema with auth
-		const schemaFields: any = {};
-		
-		// Add auth field based on API configuration
-		if (config.auth) {
-			switch (config.auth.type) {
-				case 'bearer':
-					schemaFields.auth_token = z.string().optional().describe("Bearer token for authentication");
-					break;
-				case 'apiKey':
-					schemaFields.api_key = z.string().optional().describe(`API key for ${config.auth.apiKeyName || 'authentication'}`);
-					break;
-				case 'basic':
-					schemaFields.username = z.string().optional().describe("Username for basic auth");
-					schemaFields.password = z.string().optional().describe("Password for basic auth");
-					break;
-			}
-		}
-
-		// Add operation-specific parameters (simplified for now)
-		const parameters = operation.parameters || [];
-		parameters.forEach((param: any) => {
-			if (param && param.name) {
-				schemaFields[param.name] = z.string().optional().describe(param.description || `Parameter: ${param.name}`);
-			}
+			return searchableText.includes(searchQuery);
 		});
 
-		return z.object(schemaFields);
+		if (matchingEndpoints.length === 0) {
+			return {
+				content: [{
+					type: "text",
+					text: `🔍 **No endpoints found for query: "${query}"**\n\n` +
+						`Try searching for terms like: product, device, user, binding, group, etc.`
+				}]
+			};
+		}
+
+		let result = `🔍 **Found ${matchingEndpoints.length} matching endpoints for "${query}":**\n\n`;
+		
+		matchingEndpoints.slice(0, 10).forEach((endpoint, index) => {
+			result += `**${index + 1}. ${endpoint.apiTitle}**\n`;
+			result += `🔗 **Endpoint**: \`${endpoint.method} ${endpoint.path}\`\n`;
+			result += `📝 **Summary**: ${endpoint.summary || 'No summary'}\n`;
+			result += `📋 **Description**: ${endpoint.description || 'No description'}\n`;
+			result += `🏷️ **API Name**: ${endpoint.apiName}\n`;
+			if (endpoint.parameters && endpoint.parameters.length > 0) {
+				const paramNames = endpoint.parameters.map((p: any) => p.name).join(', ');
+				result += `📥 **Parameters**: ${paramNames}\n`;
+			}
+			result += `\n**To call this endpoint, use:**\n`;
+			result += `\`\`\`json\n`;
+			result += `{\n`;
+			result += `  "api_name": "${endpoint.apiName}",\n`;
+			result += `  "method": "${endpoint.method}",\n`;
+			result += `  "path": "${endpoint.path}",\n`;
+			result += `  "parameters": {},\n`;
+			result += `  "auth_token": "your-token-here"\n`;
+			result += `}\n`;
+			result += `\`\`\`\n\n`;
+		});
+
+		if (matchingEndpoints.length > 10) {
+			result += `*Showing first 10 results. Total found: ${matchingEndpoints.length}*`;
+		}
+
+		return {
+			content: [{ type: "text", text: result }]
+		};
+	}
+
+	private async callEndpoint(apiName: string, method: string, path: string, parameters: any, authToken?: string): Promise<any> {
+		// Find the API instance
+		const apiInstance = this.apiInstances.get(apiName);
+		if (!apiInstance) {
+			return {
+				content: [{
+					type: "text",
+					text: `❌ **API not found**: ${apiName}\n\n` +
+						`Available APIs: ${Array.from(this.apiInstances.keys()).join(', ')}`
+				}]
+			};
+		}
+
+		// Find the matching endpoint
+		const endpoint = this.allEndpoints.find(ep => 
+			ep.apiName === apiName && 
+			ep.method === method.toUpperCase() && 
+			ep.path === path
+		);
+
+		if (!endpoint) {
+			return {
+				content: [{
+					type: "text",
+					text: `❌ **Endpoint not found**: ${method.toUpperCase()} ${path}\n\n` +
+						`API: ${apiName}\n` +
+						`Use search_api with a query to find available endpoints.`
+				}]
+			};
+		}
+
+		// Prepare auth configuration
+		const authConfig = { ...apiInstance.config.auth };
+		if (authToken) {
+			authConfig.token = authToken;
+		}
+
+		// Execute the API call
+		try {
+			return await this.executeApiCall(apiInstance, path, method.toLowerCase(), endpoint.operation, parameters, authConfig);
+		} catch (error) {
+			return {
+				content: [{
+					type: "text",
+					text: `❌ **API Call Failed**\n` +
+						`🔗 **Endpoint**: ${method.toUpperCase()} ${path}\n` +
+						`🏷️ **API**: ${apiInstance.config.title}\n` +
+						`❌ **Error**: ${error}`
+				}]
+			};
+		}
 	}
 
 	private async executeApiCall(
@@ -495,125 +480,14 @@ export class SwaggerMCP extends McpAgent {
 		return this.extractQueryParams(input); // Same logic for now
 	}
 
-	private async searchEndpoints(query: string): Promise<any> {
-		const searchQuery = query.toLowerCase();
-		const matchingEndpoints = this.allEndpoints.filter(endpoint => {
-			const searchableText = [
-				endpoint.path,
-				endpoint.summary,
-				endpoint.description,
-				endpoint.operationId,
-				endpoint.apiTitle,
-				endpoint.apiName
-			].join(' ').toLowerCase();
-			
-			return searchableText.includes(searchQuery);
-		});
-
-		if (matchingEndpoints.length === 0) {
-			return {
-				content: [{
-					type: "text",
-					text: `🔍 **No endpoints found for query: "${query}"**\n\n` +
-						`Try searching for terms like: product, device, user, binding, group, etc.`
-				}]
-			};
-		}
-
-		let result = `🔍 **Found ${matchingEndpoints.length} matching endpoints for "${query}":**\n\n`;
-		
-		matchingEndpoints.slice(0, 10).forEach((endpoint, index) => {
-			result += `**${index + 1}. ${endpoint.apiTitle}**\n`;
-			result += `🔗 **Endpoint**: \`${endpoint.method} ${endpoint.path}\`\n`;
-			result += `📝 **Summary**: ${endpoint.summary || 'No summary'}\n`;
-			result += `📋 **Description**: ${endpoint.description || 'No description'}\n`;
-			result += `🏷️ **API Name**: ${endpoint.apiName}\n`;
-			if (endpoint.parameters && endpoint.parameters.length > 0) {
-				const paramNames = endpoint.parameters.map((p: any) => p.name).join(', ');
-				result += `📥 **Parameters**: ${paramNames}\n`;
-			}
-			result += `\n**To call this endpoint, use:**\n`;
-			result += `\`\`\`json\n`;
-			result += `{\n`;
-			result += `  "api_name": "${endpoint.apiName}",\n`;
-			result += `  "method": "${endpoint.method}",\n`;
-			result += `  "path": "${endpoint.path}",\n`;
-			result += `  "parameters": {},\n`;
-			result += `  "auth_token": "your-token-here"\n`;
-			result += `}\n`;
-			result += `\`\`\`\n\n`;
-		});
-
-		if (matchingEndpoints.length > 10) {
-			result += `*Showing first 10 results. Total found: ${matchingEndpoints.length}*`;
-		}
-
-		return {
-			content: [{ type: "text", text: result }]
-		};
-	}
-
-	private async callEndpoint(apiName: string, method: string, path: string, parameters: any, authToken?: string): Promise<any> {
-		// Find the API instance
-		const apiInstance = this.apiInstances.get(apiName);
-		if (!apiInstance) {
-			return {
-				content: [{
-					type: "text",
-					text: `❌ **API not found**: ${apiName}\n\n` +
-						`Available APIs: ${Array.from(this.apiInstances.keys()).join(', ')}`
-				}]
-			};
-		}
-
-		// Find the matching endpoint
-		const endpoint = this.allEndpoints.find(ep => 
-			ep.apiName === apiName && 
-			ep.method === method.toUpperCase() && 
-			ep.path === path
-		);
-
-		if (!endpoint) {
-			return {
-				content: [{
-					type: "text",
-					text: `❌ **Endpoint not found**: ${method.toUpperCase()} ${path}\n\n` +
-						`API: ${apiName}\n` +
-						`Use search_api with a query to find available endpoints.`
-				}]
-			};
-		}
-
-		// Prepare auth configuration
-		const authConfig = { ...apiInstance.config.auth };
-		if (authToken) {
-			authConfig.token = authToken;
-		}
-
-		// Execute the API call
-		try {
-			return await this.executeApiCall(apiInstance, path, method.toLowerCase(), endpoint.operation, parameters, authConfig);
-		} catch (error) {
-			return {
-				content: [{
-					type: "text",
-					text: `❌ **API Call Failed**\n` +
-						`🔗 **Endpoint**: ${method.toUpperCase()} ${path}\n` +
-						`🏷️ **API**: ${apiInstance.config.title}\n` +
-						`❌ **Error**: ${error}`
-				}]
-			};
-		}
-	}
-
-	private getApiToolCount(apiName: string): number {
+	private getApiEndpointCount(apiName: string): number {
 		// Count endpoints for this API
 		return this.allEndpoints.filter(ep => ep.apiName === apiName).length;
 	}
 }
 
 export default {
-	fetch(request: Request, env: Env, ctx: ExecutionContext) {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 
 		// Handle SSE endpoint using the McpAgent pattern
@@ -631,16 +505,8 @@ export default {
 			return new Response(JSON.stringify({ 
 				status: 'ok', 
 				service: 'Swagger MCP Server',
-				version: '1.0.0'
+				version: '2.0.0'
 			}), {
-				headers: { 'Content-Type': 'application/json' }
-			});
-		}
-
-		// Serve config.json (removed for now)
-		if (url.pathname === "/config.json") {
-			return new Response('{"error": "Config endpoint disabled"}', {
-				status: 404,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
