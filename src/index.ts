@@ -170,9 +170,15 @@ export class SwaggerMCP extends McpAgent {
 				// Create input schema with auth support
 				const inputSchema = this.createInputSchema(apiInstance, op);
 
+				// Create tool description with actual API path and method
+				const toolDescription = `${op.summary || `Call ${method.toUpperCase()} ${path}`}\n\n` +
+					`🔗 **API Endpoint**: ${method.toUpperCase()} ${path}\n` +
+					`📝 **Description**: ${op.description || 'No description available'}\n` +
+					`🏷️ **Tool Name**: ${toolName}`;
+
 				this.server.tool(
 					toolName,
-					inputSchema,
+					inputSchema.describe(toolDescription),
 					async (params: any) => {
 						return await this.executeApiCall(apiInstance, path, method, op, params.input);
 					}
@@ -362,7 +368,9 @@ export class SwaggerMCP extends McpAgent {
 
 			return {
 				content: [
-					{ type: "text", text: `✅ **${config.title}** - ${operation.summary || `${method.toUpperCase()} ${path}`}` },
+					{ type: "text", text: `✅ **${config.title}** API Call Successful` },
+					{ type: "text", text: `🔗 **Endpoint**: ${method.toUpperCase()} ${path}` },
+					{ type: "text", text: `🌐 **Full URL**: ${url}` },
 					{ type: "text", text: `📊 **Status**: ${response.status}` },
 					{ type: "text", text: `📄 **Response**:\n\`\`\`json\n${JSON.stringify(response.data, null, 2)}\n\`\`\`` }
 				]
@@ -371,14 +379,21 @@ export class SwaggerMCP extends McpAgent {
 			console.error(`Error in ${config.name} API call:`, error);
 			if (axios.isAxiosError(error) && error.response) {
 				return {
-					content: [{ 
-						type: "text", 
-						text: `❌ **${config.title}** Error ${error.response.status}:\n\`\`\`json\n${JSON.stringify(error.response.data, null, 2)}\n\`\`\`` 
-					}]
+					content: [
+						{ type: "text", text: `❌ **${config.title}** API Call Failed` },
+						{ type: "text", text: `🔗 **Endpoint**: ${method.toUpperCase()} ${path}` },
+						{ type: "text", text: `🌐 **Full URL**: ${url}` },
+						{ type: "text", text: `📊 **Status**: ${error.response.status}` },
+						{ type: "text", text: `❌ **Error Response**:\n\`\`\`json\n${JSON.stringify(error.response.data, null, 2)}\n\`\`\`` }
+					]
 				};
 			}
 			return {
-				content: [{ type: "text", text: `❌ **${config.title}** Error: ${error}` }]
+				content: [
+					{ type: "text", text: `❌ **${config.title}** API Call Failed` },
+					{ type: "text", text: `🔗 **Endpoint**: ${method.toUpperCase()} ${path}` },
+					{ type: "text", text: `❌ **Error**: ${error}` }
+				]
 			};
 		}
 	}
